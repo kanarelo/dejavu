@@ -4,6 +4,9 @@ import numpy as np
 import pyaudio
 import time
 
+from tqdm import trange
+
+from pydub.audio_segment import AudioSegment
 
 class BaseRecognizer(object):
 
@@ -25,8 +28,16 @@ class FileRecognizer(BaseRecognizer):
     def __init__(self, dejavu):
         super(FileRecognizer, self).__init__(dejavu)
 
-    def recognize_file(self, filename):
-        frames, self.Fs, file_hash = decoder.read(filename, self.dejavu.limit)
+    def recognize_segment(self, segment, segment_size=30):
+        duration = segment.duration_seconds
+        if duration > segment_size:
+            matches = []
+            for i in trange(int(duration/segment_size), desc=("Recognizing each %ss segment" % segment_size)):
+                seg = segment[i * segment_size * 1000:(i+1)* segment_size * 1000]
+                matches.append(self.recognize_segment(seg, segment_size=segment_size))
+            return matches
+
+        frames, self.Fs, file_hash = decoder.read(segment)
 
         t = time.time()
         match = self._recognize(*frames)
@@ -37,9 +48,11 @@ class FileRecognizer(BaseRecognizer):
 
         return match
 
-    def recognize(self, filename):
-        return self.recognize_file(filename)
+    def recognize_file(self, filename, file_type="wav"):
+        return self.recognize_segment(AudioSegment.from_file(filename, format=file_type))
 
+    def recognize(self, filename, file_type="wav"):
+        return self.recognize_file(filename, file_type=file_type)
 
 class MicrophoneRecognizer(BaseRecognizer):
     default_chunksize   = 8192

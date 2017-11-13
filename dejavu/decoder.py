@@ -14,7 +14,14 @@ def unique_hash(filepath, blocksize=2**20):
     Works with large files. 
     """
     s = sha1()
-    with open(filepath , "rb") as f:
+
+    try:
+        filepath.read
+        f = filepath
+    except AttributeError:
+        f = open(filepath , "rb")
+
+    with f:
         while True:
             buf = f.read(blocksize)
             if not buf:
@@ -34,7 +41,7 @@ def find_files(path, extensions):
                 yield (p, extension)
 
 
-def read(filename, limit=None):
+def read(file_or_segment, limit=None, file_format="wav"):
     """
     Reads any file supported by pydub (ffmpeg) and returns the data contained
     within. If file reading fails due to input being a 24-bit wav file,
@@ -47,8 +54,13 @@ def read(filename, limit=None):
     returns: (channels, samplerate)
     """
     # pydub does not support 24-bit wav files, use wavio when this occurs
+    is_segment = False
     try:
-        audiofile = AudioSegment.from_file(filename)
+        if isinstance(file_or_segment, AudioSegment):
+            audiofile = file_or_segment
+            is_segment = True
+        else:
+            audiofile = AudioSegment.from_file(file_or_segment, format=file_format)
 
         if limit:
             audiofile = audiofile[:limit * 1000]
@@ -61,7 +73,7 @@ def read(filename, limit=None):
 
         fs = audiofile.frame_rate
     except audioop.error:
-        fs, _, audiofile = wavio.readwav(filename)
+        fs, _, audiofile = wavio.readwav(file_or_segment)
 
         if limit:
             audiofile = audiofile[:limit * 1000]
@@ -73,8 +85,7 @@ def read(filename, limit=None):
         for chn in audiofile:
             channels.append(chn)
 
-    return channels, audiofile.frame_rate, unique_hash(filename)
-
+    return channels, audiofile.frame_rate, unique_hash(file_or_segment.export(format="wav") if is_segment else file_or_segment)
 
 def path_to_songname(path):
     """

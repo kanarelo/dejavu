@@ -7,6 +7,8 @@ from scipy.ndimage.morphology import (generate_binary_structure,
 import hashlib
 from operator import itemgetter
 
+import warnings
+
 IDX_FREQ_I = 0
 IDX_TIME_J = 1
 
@@ -61,7 +63,8 @@ PEAK_SORT = True
 # potentially higher collisions and misclassifications when identifying songs.
 FINGERPRINT_REDUCTION = 20
 
-def fingerprint(channel_samples, Fs=DEFAULT_FS,
+def fingerprint(channel_samples, song_name=None, 
+                Fs=DEFAULT_FS,
                 wsize=DEFAULT_WINDOW_SIZE,
                 wratio=DEFAULT_OVERLAP_RATIO,
                 fan_value=DEFAULT_FAN_VALUE,
@@ -78,9 +81,20 @@ def fingerprint(channel_samples, Fs=DEFAULT_FS,
         window=mlab.window_hanning,
         noverlap=int(wsize * wratio))[0]
 
-    # apply log transform since specgram() returns linear array
-    arr2D = 10 * np.log10(arr2D)
-    arr2D[arr2D == -np.inf] = 0  # replace infs with zeros
+    with warnings.catch_warnings():
+        warnings.filterwarnings('error')
+        try:
+            # apply log transform since specgram() returns linear array
+            arr2D = 10 * np.log10(arr2D)
+        except RuntimeWarning as e:
+            try:
+                arr2D[arr2D == 0] = 10**-10  # replace 0's with 10**-10
+                arr2D = 10 * np.log10(arr2D)
+            except RuntimeWarning as e2:
+                pass
+            print song_name, "has error:", e
+        finally:
+            arr2D[arr2D == -np.inf] = 0  # replace infs with zeros
 
     # find local maxima
     local_maxima = get_2D_peaks(arr2D, plot=False, amp_min=amp_min)

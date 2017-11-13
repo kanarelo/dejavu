@@ -35,6 +35,7 @@ class Dejavu(object):
         self.get_fingerprinted_songs()
 
     def get_fingerprinted_songs(self):
+        print "Updating song hashes"
         # get songs previously indexed
         self.songs = self.db.get_songs()
         self.songhashes_set = set()  # to know which ones we've computed before
@@ -65,7 +66,7 @@ class Dejavu(object):
 
         # Prepare _fingerprint_worker input
         worker_input = zip(filenames_to_fingerprint,
-                           [self.limit] * len(filenames_to_fingerprint))
+                           [self.limit, None, "wav"] * len(filenames_to_fingerprint))
 
         # Send off our tasks
         iterator = pool.imap_unordered(_fingerprint_worker,
@@ -80,14 +81,19 @@ class Dejavu(object):
             except StopIteration:
                 break
             except:
-                print("Failed fingerprinting")
+                print("Failed fingerprint")
                 # Print traceback because we can't reraise it here
                 traceback.print_exc(file=sys.stdout)
             else:
+                print "Inserting song %s:%s to database" % (song_name, file_hash)
                 sid = self.db.insert_song(song_name, file_hash)
 
+                print "inserting hashes for song %s" % song_name
                 self.db.insert_hashes(sid, hashes)
+                print "updating fingerprinted song %s" % song_name
                 self.db.set_song_fingerprinted(sid)
+
+                print "updating song hashes: %s" % song_name
                 self.get_fingerprinted_songs()
 
         pool.close()
@@ -106,10 +112,15 @@ class Dejavu(object):
                 self.limit,
                 song_name=song_name
             )
+            print "Inserting song %s:%s to database" % (song_name, file_hash)
             sid = self.db.insert_song(song_name, file_hash)
 
+            print "inserting hashes for song %s" % song_name
             self.db.insert_hashes(sid, hashes)
+            print "updating fingerprinted song %s" % song_name
             self.db.set_song_fingerprinted(sid)
+
+            print "updating song hashes: %s" % song_name
             self.get_fingerprinted_songs()
 
     def find_matches(self, samples, Fs=fingerprint.DEFAULT_FS):
@@ -167,7 +178,7 @@ class Dejavu(object):
         return r.recognize(*options, **kwoptions)
 
 
-def _fingerprint_worker(filename, limit=None, song_name=None):
+def _fingerprint_worker(filename, limit=None, file_format="wav", song_name=None):
     # Pool.imap sends arguments as tuples so we have to unpack
     # them ourself.
     try:
@@ -177,16 +188,16 @@ def _fingerprint_worker(filename, limit=None, song_name=None):
 
     songname, extension = os.path.splitext(os.path.basename(filename))
     song_name = song_name or songname
-    channels, Fs, file_hash = decoder.read(filename, limit)
+    channels, Fs, file_hash = decoder.read(filename, limit, file_format)
     result = set()
     channel_amount = len(channels)
 
     for channeln, channel in enumerate(channels):
         # TODO: Remove prints or change them into optional logging.
-        print("Fingerprinting channel %d/%d for %s" % (channeln + 1,
+        print("Fingerprint channel %d/%d for %s" % (channeln + 1,
                                                        channel_amount,
                                                        filename))
-        hashes = fingerprint.fingerprint(channel, Fs=Fs)
+        hashes = fingerprint.fingerprint(channel, Fs=Fs, song_name=song_name)
         print("Finished channel %d/%d for %s" % (channeln + 1, channel_amount,
                                                  filename))
         result |= set(hashes)
