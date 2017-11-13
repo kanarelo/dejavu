@@ -1,14 +1,14 @@
 from dejavu.database import get_database, Database
 import dejavu.decoder as decoder
+
+import binascii
 import fingerprint
 import multiprocessing
 import os
 import traceback
 import sys
 
-
 class Dejavu(object):
-
     SONG_ID = "song_id"
     SONG_NAME = 'song_name'
     CONFIDENCE = 'confidence'
@@ -22,7 +22,7 @@ class Dejavu(object):
         self.config = config
 
         database_type = config.get("database", {}).get("database_type")
-        
+
         # initialize db
         db_cls = get_database(database_type=database_type)
 
@@ -43,7 +43,7 @@ class Dejavu(object):
         self.songhashes_set = set()  # to know which ones we've computed before
         for song in self.songs:
             song_hash = song[Database.FIELD_FILE_SHA1]
-            self.songhashes_set.add(song_hash)
+            self.songhashes_set.add(binascii.hexlify(song_hash).upper())
 
     def fingerprint_directory(self, path, extensions, nprocesses=None):
         # Try to use the maximum amount of processes if not given.

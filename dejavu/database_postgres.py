@@ -16,9 +16,6 @@ from dejavu.database import Database
 
 class PostgresDatabase(Database):
     """ Class to interact with Postregres databases.
-
-    The queries should be self evident, but they are documented in the event
-    that they aren't :)
     """
 
     type = "postgresql"
