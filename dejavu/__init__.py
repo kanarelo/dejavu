@@ -21,8 +21,10 @@ class Dejavu(object):
 
         self.config = config
 
+        database_type = config.get("database", {}).get("database_type")
+        
         # initialize db
-        db_cls = get_database(config.get("database_type", None))
+        db_cls = get_database(database_type=database_type)
 
         self.db = db_cls(**config.get("database", {}))
         self.db.setup()

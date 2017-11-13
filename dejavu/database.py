@@ -5,11 +5,16 @@ import abc
 class Database(object):
     __metaclass__ = abc.ABCMeta
 
+     # tables
+    FINGERPRINTS_TABLENAME = "fingerprint"
+    SONGS_TABLENAME = "song"
+
     FIELD_FILE_SHA1 = 'file_sha1'
     FIELD_SONG_ID = 'song_id'
     FIELD_SONGNAME = 'song_name'
-    FIELD_OFFSET = 'offset'
-    FIELD_HASH = 'hash'
+    FIELD_OFFSET = 'song_offset'
+    FIELD_HASH = 'song_hash'
+    FIELD_FINGERPRINTED = "fingerprinted"
 
     # Name of your Database subclass, this is used in configuration
     # to refer to your class
@@ -164,6 +169,9 @@ def get_database(database_type=None):
     database_type = database_type or "mysql"
     # Lower all the input.
     database_type = database_type.lower()
+
+    if database_type == 'postgresql':
+        import dejavu.database_postgres
 
     for db_cls in Database.__subclasses__():
         if db_cls.type == database_type:

@@ -91,8 +91,7 @@ def fingerprint(channel_samples, song_name=None,
                 arr2D[arr2D == 0] = 10**-10  # replace 0's with 10**-10
                 arr2D = 10 * np.log10(arr2D)
             except RuntimeWarning as e2:
-                pass
-            print song_name, "has error:", e
+                print "Fingerprinting Error:", song_name, "has error", e2
         finally:
             arr2D[arr2D == -np.inf] = 0  # replace infs with zeros
 
