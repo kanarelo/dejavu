@@ -49,7 +49,7 @@ class Dejavu(object):
     def fingerprint_directory(self, path, extensions, nprocesses=None):
         # Try to use the maximum amount of processes if not given.
         try:
-            nprocesses = nprocesses or multiprocessing.cpu_count()
+            nprocesses = nprocesses or (multiprocessing.cpu_count() - 1)
         except NotImplementedError:
             nprocesses = 1
         else:
@@ -126,12 +126,13 @@ class Dejavu(object):
             print "Inserting song %s:%s to database" % (song_name, file_hash)
             sid = self.db.insert_song(song_name, file_hash)
 
-            print "inserting hashes for song %s" % song_name
+            print "Inserting hashes for song %s" % song_name
             self.db.insert_hashes(sid, hashes)
-            print "updating fingerprinted song %s" % song_name
+            
+            print "Updating fingerprinted song %s" % song_name
             self.db.set_song_fingerprinted(sid)
 
-            print "updating song hashes: %s" % song_name
+            print "Updating song hashes: %s" % song_name
             self.get_fingerprinted_songs().add(file_hash)
 
     def find_matches(self, samples, Fs=fingerprint.DEFAULT_FS):
