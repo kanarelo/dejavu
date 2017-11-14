@@ -11,17 +11,17 @@ except ImportError as err:
     print "Module not installed", err
     sys.exit(1)
 
-from psycopg2.extras import DictCursor, RealDictCursor
+from psycopg2.extras import DictCursor, RealDictCursor, wait_select
 from dejavu.database import Database
 
 class PostgresDatabase(Database):
-    """ Class to interact with Postregres databases.
+    """ Class to interact with Postgres databases.
     """
 
     type = "postgresql"
 
     # The number of hashes to insert at a time
-    NUM_HASHES = 10000
+    NUM_HASHES = 9000
 
     # Schema
     DEFAULT_SCHEMA = 'public'
@@ -83,15 +83,19 @@ class PostgresDatabase(Database):
                  Database.FIELD_SONG_ID,  # unique key on song_id
                 )
 
-    # Inserts (ignores duplicates)
-    INSERT_FINGERPRINT = """
-        INSERT INTO %s (%s, %s, %s)
-        values (decode(%%s, 'hex'), %%s, %%s);
+    INSERT_FINGERPRINT_BASIC = """
+        INSERT INTO %s (%s, %s, %s) VALUES
         """ % (
             Database.FINGERPRINTS_TABLENAME,
             Database.FIELD_HASH,
             Database.FIELD_SONG_ID,
             Database.FIELD_OFFSET,
+        )
+    # Inserts (ignores duplicates)
+    INSERT_FINGERPRINT = """
+        %s (decode(%%s, 'hex'), %%s, %%s);
+        """ % (
+            INSERT_FINGERPRINT_BASIC
         )
 
     # Inserts song information.
@@ -300,22 +304,28 @@ class PostgresDatabase(Database):
         with self.cursor(cursor_type=RealDictCursor) as cur:
             cur.execute(self.SELECT_SONGS)
             for row in cur:
-                yield row
+                (song_id, song_name, file_sha1) = (row['song_id'], row['song_name'], row['file_sha1'])
+                yield Database.Song(song_id, song_name, binascii.hexlify(file_sha1).upper())
 
-    def get_song_by_id(self, sid):
+    def get_song_by_id(self, song_id):
         """
         Returns song by its ID.
         """
         with self.cursor(cursor_type=RealDictCursor) as cur:
-            cur.execute(self.SELECT_SONG, (sid,))
-            return cur.fetchone()
+            cur.execute(self.SELECT_SONG, (song_id,))
 
-    def insert(self, bhash, sid, offset):
+            song_obj = cur.fetchone()
+            song_name = song_obj.get(self.FIELD_SONGNAME)
+            file_sha1 = song_obj.get(self.FIELD_FILE_SHA1)
+            if file_sha1:
+                return Database.Song(song_id, song_name, binascii.hexlify(file_sha1).upper())
+
+    def insert(self, bhash, song_id, offset):
         """
         Insert a (sha1, song_id, offset) row into database.
         """
         with self.cursor() as cur:
-            cur.execute(self.INSERT_FINGERPRINT, bhash, sid, offset)
+            cur.execute(self.INSERT_FINGERPRINT, bhash, song_id, offset)
 
     def insert_song(self, songname, file_hash):
         """
@@ -338,6 +348,7 @@ class PostgresDatabase(Database):
 
         with self.cursor() as cur:
             cur.execute(query)
+
             for sid, offset in cur:
                 yield (sid, offset)
 
@@ -352,13 +363,16 @@ class PostgresDatabase(Database):
         Insert series of hash => song_id, offset
         values into the database.
         """
+        print "Inserting %s hashes for song_id %s" % (len(hashes), sid)
+
         values = []
         for bhash, offset in hashes:
             values.append((bhash, sid, offset))
 
         with self.cursor() as cur:
             for split_values in grouper(values, self.NUM_HASHES):
-                cur.executemany(self.INSERT_FINGERPRINT, split_values)
+                args_str = ','.join(cur.mogrify("(decode(%s, 'hex'), %s, %s)", x) for x in split_values)
+                cur.execute(self.INSERT_FINGERPRINT_BASIC + " " + args_str ";")
 
     def return_matches(self, hashes):
         """
@@ -377,8 +391,7 @@ class PostgresDatabase(Database):
             for split_values in grouper(values, self.NUM_HASHES):
                 # Create our IN part of the query
                 query = self.SELECT_MULTIPLE
-                query = query % ', '.join(["decode(%s, 'hex')"] * \
-                    len(split_values))
+                query = query % ', '.join(["decode(%s, 'hex')"] * len(split_values))
 
                 cur.execute(query, split_values)
 
@@ -393,7 +406,6 @@ class PostgresDatabase(Database):
     def __setstate__(self, state):
         self._options, = state
         self.cursor = cursor_factory(**self._options)
-
 
 def grouper(iterable, num, fillvalue=None):
     """ Groups values.
@@ -428,24 +440,35 @@ class Cursor(object):
     """
     _cache = Queue.Queue(maxsize=5)
 
-    def __init__(self, cursor_type=DictCursor, **options):
+    def __init__(self, async=False, cursor_type=DictCursor, **options):
         super(Cursor, self).__init__()
 
-        try:
-            conn = self._cache.get_nowait()
-        except Queue.Empty:
-            conn = psycopg2.connect(**dict(
-                dbname=options.get('db'), 
-                user=options.get('user'), 
-                host=options.get('host'), 
-                password=options.get('passwd')
-            ))
-        else:
-            # Ping the connection before using it from the cache.
-            conn.cursor().execute('SELECT 1')
+        conn = self.get_connection(async=async, **options)
+        # Ping the connection before using it from the cache.
+        conn.cursor().execute('SELECT 1')
 
         self.conn = conn
         self.cursor_type = cursor_type
+
+    def get_connection(self, async=False, **options):
+        def connect():
+            kwargs = dict(
+                dbname=options.get('db'), 
+                user=options.get('user'), 
+                host=options.get('host'), 
+                password=options.get('passwd'))
+
+            if async is True:
+                kwargs.update(async=async)
+            return psycopg2.connect(**kwargs)
+
+        if async is False:
+            try:
+                return self._cache.get_nowait()
+            except Queue.Empty:
+                return connect()
+        else:
+            return connect()
 
     @classmethod
     def clear_cache(cls):

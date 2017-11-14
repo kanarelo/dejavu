@@ -85,7 +85,10 @@ def read(file_or_segment, limit=None, file_format="wav"):
         for chn in audiofile:
             channels.append(chn)
 
-    return channels, audiofile.frame_rate, unique_hash(file_or_segment.export(format="wav") if is_segment else file_or_segment)
+    file_sha1 = unique_hash(
+        file_or_segment.export(format="wav") if is_segment else file_or_segment)
+
+    return channels, fs, file_sha1
 
 def path_to_songname(path):
     """

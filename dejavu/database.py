@@ -1,6 +1,8 @@
 from __future__ import absolute_import
+
 import abc
 
+from collections import namedtuple
 
 class Database(object):
     __metaclass__ = abc.ABCMeta
@@ -9,12 +11,15 @@ class Database(object):
     FINGERPRINTS_TABLENAME = "fingerprint"
     SONGS_TABLENAME = "song"
 
-    FIELD_FILE_SHA1 = 'file_sha1'
     FIELD_SONG_ID = 'song_id'
     FIELD_SONGNAME = 'song_name'
+    FIELD_FILE_SHA1 = 'file_sha1'
     FIELD_OFFSET = 'song_offset'
     FIELD_HASH = 'song_hash'
     FIELD_FINGERPRINTED = "fingerprinted"
+
+    Song = namedtuple('Song', (FIELD_SONG_ID, FIELD_SONGNAME, FIELD_FILE_SHA1))
+    Fingerprint = namedtuple('Fingerprint', (FIELD_SONG_ID, FIELD_OFFSET, FIELD_HASH))
 
     # Name of your Database subclass, this is used in configuration
     # to refer to your class
