@@ -1,12 +1,11 @@
 import os
 import sys
-import tqdm
 import traceback
 import fingerprint
 import multiprocessing
 
-import dejavu.decoder as decoder
 from dejavu.database import get_database, Database
+import dejavu.decoder as decoder
 
 class Dejavu(object):
     SONG_ID = "song_id"
@@ -67,6 +66,12 @@ class Dejavu(object):
 
             filenames_to_fingerprint.append(filename)
 
+        if not filenames_to_fingerprint:
+            print "=============" * 3
+            print "All the files provided have already been fingerprinted, exiting..."
+            print "=============" * 3
+            return 
+
         # Prepare _fingerprint_worker input
         worker_input = zip(
             filenames_to_fingerprint,
@@ -74,10 +79,11 @@ class Dejavu(object):
         )
 
         # Send off our tasks
-        iterator = tqdm(pool.imap_unordered(_fingerprint_worker, worker_input))
+        iterator = pool.imap_unordered(_fingerprint_worker, worker_input)
 
         # Loop till we have all of them
         while True:
+            print "=============" * 3
             try:
                 song_name, hashes, file_hash = iterator.next()
             except multiprocessing.TimeoutError:
@@ -99,6 +105,7 @@ class Dejavu(object):
 
                 print "updating song hashes: %s" % song_name
                 self.get_fingerprinted_songs().add(file_hash)
+            print "=============" * 3
 
         pool.close()
         pool.join()
@@ -173,7 +180,7 @@ class Dejavu(object):
             Dejavu.CONFIDENCE : largest_count,
             Dejavu.OFFSET : int(largest),
             Dejavu.OFFSET_SECS : nseconds,
-            Database.FIELD_FILE_SHA1 : song.get(Database.FIELD_FILE_SHA1, None)
+            Database.FIELD_FILE_SHA1 : song.file_sha1
         }
         return song_dict
 

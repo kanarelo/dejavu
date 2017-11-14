@@ -15,7 +15,7 @@ IDX_TIME_J = 1
 ######################################################################
 # Sampling rate, related to the Nyquist conditions, which affects
 # the range frequencies we can detect.
-DEFAULT_FS = 44100
+DEFAULT_FS = 11025
 
 ######################################################################
 # Size of the FFT window, affects frequency granularity
@@ -101,7 +101,6 @@ def fingerprint(channel_samples, song_name=None,
     # return hashes
     return generate_hashes(local_maxima, fan_value=fan_value)
 
-
 def get_2D_peaks(arr2D, plot=False, amp_min=DEFAULT_AMP_MIN):
     # http://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.morphology.iterate_structure.html#scipy.ndimage.morphology.iterate_structure
     struct = generate_binary_structure(2, 1)
@@ -141,7 +140,6 @@ def get_2D_peaks(arr2D, plot=False, amp_min=DEFAULT_AMP_MIN):
         plt.show()
 
     return zip(frequency_idx, time_idx)
-
 
 def generate_hashes(peaks, fan_value=DEFAULT_FAN_VALUE):
     """

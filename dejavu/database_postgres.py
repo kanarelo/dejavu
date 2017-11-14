@@ -372,7 +372,7 @@ class PostgresDatabase(Database):
         with self.cursor() as cur:
             for split_values in grouper(values, self.NUM_HASHES):
                 args_str = ','.join(cur.mogrify("(decode(%s, 'hex'), %s, %s)", x) for x in split_values)
-                cur.execute(self.INSERT_FINGERPRINT_BASIC + " " + args_str ";")
+                cur.execute(self.INSERT_FINGERPRINT_BASIC + " " + args_str + ";")
 
     def return_matches(self, hashes):
         """
