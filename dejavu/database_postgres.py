@@ -26,23 +26,6 @@ class PostgresDatabase(Database):
     # Schema
     DEFAULT_SCHEMA = 'public'
 
-    # creates postgres table if it doesn't exist
-    CREATE_FINGERPRINTS_TABLE = """
-        CREATE TABLE IF NOT EXISTS %s (
-             %s bytea NOT NULL,
-             %s int NOT NULL,
-             %s int NOT NULL,
-             CONSTRAINT comp_key UNIQUE (%s, %s, %s),
-             FOREIGN KEY (%s) REFERENCES %s(%s)
-        );""" % (
-            Database.FINGERPRINTS_TABLENAME,
-            Database.FIELD_HASH,  # actual fingerprint itself
-            Database.FIELD_SONG_ID,  # song id (fkey to songs tables)
-            Database.FIELD_OFFSET,   # offset relative to START of song
-            Database.FIELD_SONG_ID, Database.FIELD_OFFSET, Database.FIELD_HASH,  # unique constraint
-            Database.FIELD_SONG_ID, Database.SONGS_TABLENAME, Database.FIELD_SONG_ID  # foreign key
-        )
-
     # Creates an index on fingerprint itself for webscale
     CREATE_FINGERPRINT_INDEX = """
         DO $$
@@ -64,24 +47,6 @@ class PostgresDatabase(Database):
                Database.FINGERPRINTS_TABLENAME,
                Database.FIELD_HASH
               )
-
-    # Creates the table that stores song information.
-    CREATE_SONGS_TABLE = """
-        CREATE TABLE IF NOT EXISTS %s (
-            %s SERIAL,
-            %s varchar(250) NOT NULL,
-            %s boolean default FALSE,
-            %s bytea not null,
-            PRIMARY KEY (%s),
-            CONSTRAINT uni_que UNIQUE (%s)
-        );""" % (Database.SONGS_TABLENAME,
-                 Database.FIELD_SONG_ID,
-                 Database.FIELD_SONGNAME,  # songname when we fingerprinted it
-                 Database.FIELD_FINGERPRINTED, # whether we processed the song
-                 Database.FIELD_FILE_SHA1,
-                 Database.FIELD_SONG_ID,  # pkey on songid
-                 Database.FIELD_SONG_ID,  # unique key on song_id
-                )
 
     INSERT_FINGERPRINT_BASIC = """
         INSERT INTO %s (%s, %s, %s) VALUES

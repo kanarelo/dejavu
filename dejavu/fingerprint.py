@@ -117,7 +117,7 @@ def get_2D_peaks(arr2D, plot=False, amp_min=DEFAULT_AMP_MIN):
 
     # extract peaks
     amps = arr2D[detected_peaks]
-    j, i = np.where(detected_peaks)
+    (j, i) = np.where(detected_peaks)
 
     # filter peaks
     amps = amps.flatten()

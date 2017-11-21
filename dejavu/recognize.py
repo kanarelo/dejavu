@@ -5,11 +5,9 @@ import pyaudio
 import time
 
 from tqdm import trange
-
 from pydub.audio_segment import AudioSegment
 
 class BaseRecognizer(object):
-
     def __init__(self, dejavu):
         self.dejavu = dejavu
         self.Fs = fingerprint.DEFAULT_FS
@@ -22,7 +20,6 @@ class BaseRecognizer(object):
 
     def recognize(self):
         pass  # base class does nothing
-
 
 class FileRecognizer(BaseRecognizer):
     def __init__(self, dejavu):
@@ -119,7 +116,6 @@ class MicrophoneRecognizer(BaseRecognizer):
             self.process_recording()
         self.stop_recording()
         return self.recognize_recording()
-
 
 class NoRecordingError(Exception):
     pass
