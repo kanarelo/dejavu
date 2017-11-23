@@ -63,7 +63,8 @@ class Dejavu(object):
             if decoder.unique_hash(filename) in self.songhashes_set:
                 print "%s already fingerprinted, continuing..." % filename
                 continue
-
+            else:
+                print "Adding '%s' to Queue" % filename
             filenames_to_fingerprint.append(filename)
 
         if not filenames_to_fingerprint:
