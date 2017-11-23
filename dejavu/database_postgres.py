@@ -280,6 +280,10 @@ class PostgresDatabase(Database):
             cur.execute(self.SELECT_SONG, (song_id,))
 
             song_obj = cur.fetchone()
+
+            if song_obj is None:
+                return
+            
             song_name = song_obj.get(self.FIELD_SONGNAME)
             file_sha1 = song_obj.get(self.FIELD_FILE_SHA1)
             if file_sha1:
