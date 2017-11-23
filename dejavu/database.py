@@ -184,6 +184,3 @@ def get_database(database_type=None):
 
     raise TypeError("Unsupported database type supplied.")
 
-
-# Import our default database handler
-import dejavu.database_sql
