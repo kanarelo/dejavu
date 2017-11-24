@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import traceback
 import fingerprint
 import multiprocessing
@@ -76,11 +77,14 @@ class Dejavu(object):
         # Prepare _fingerprint_worker input
         worker_input = zip(
             filenames_to_fingerprint,
-            [self.limit, None, "wav"] * len(filenames_to_fingerprint)
-        )
+            [self.limit, None, "wav"] * len(filenames_to_fingerprint))
+
+        def worker(*args, **kwargs):
+            time.sleep(2.5)
+            _fingerprint_worker(*args, **kwargs)
 
         # Send off our tasks
-        iterator = pool.imap_unordered(_fingerprint_worker, worker_input)
+        iterator = pool.imap_unordered(worker, worker_input)
         total_items = len(filenames_to_fingerprint)
         songs_range = range(total_items)
         done = []
@@ -126,8 +130,8 @@ class Dejavu(object):
             song_name, hashes, file_hash = _fingerprint_worker(
                 filepath,
                 self.limit,
-                song_name=song_name
-            )
+                song_name=song_name)
+
             print "Inserting song %s:%s to database" % (song_name, file_hash)
             sid = self.db.insert_song(song_name, file_hash)
 
