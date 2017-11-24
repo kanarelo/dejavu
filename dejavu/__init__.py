@@ -79,12 +79,8 @@ class Dejavu(object):
             filenames_to_fingerprint,
             [self.limit, None, "wav"] * len(filenames_to_fingerprint))
 
-        def worker(*args, **kwargs):
-            time.sleep(2.5)
-            _fingerprint_worker(*args, **kwargs)
-
         # Send off our tasks
-        iterator = pool.imap_unordered(worker, worker_input)
+        iterator = pool.imap_unordered(_fingerprint_worker, worker_input)
         total_items = len(filenames_to_fingerprint)
         songs_range = range(total_items)
         done = []
