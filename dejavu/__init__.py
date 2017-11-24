@@ -65,7 +65,7 @@ class Dejavu(object):
                 continue
             else:
                 print "Adding '%s' to Queue" % filename
-            filenames_to_fingerprint.append(filename)
+                filenames_to_fingerprint.append(filename)
 
         if not filenames_to_fingerprint:
             print "=============" * 3
@@ -81,8 +81,8 @@ class Dejavu(object):
 
         # Send off our tasks
         iterator = pool.imap_unordered(_fingerprint_worker, worker_input)
-        songs_range = range(filenames_to_fingerprint)
         total_items = len(filenames_to_fingerprint)
+        songs_range = range(total_items)
         done = []
 
         # Loop till we have all of them
