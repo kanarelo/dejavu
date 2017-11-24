@@ -81,6 +81,9 @@ class Dejavu(object):
 
         # Send off our tasks
         iterator = pool.imap_unordered(_fingerprint_worker, worker_input)
+        songs_range = range(filenames_to_fingerprint)
+        total_items = len(filenames_to_fingerprint)
+        done = []
 
         # Loop till we have all of them
         while True:
@@ -96,7 +99,8 @@ class Dejavu(object):
                 # Print traceback because we can't reraise it here
                 traceback.print_exc(file=sys.stdout)
             else:
-                print "Inserting song %s:%s to database" % (song_name, file_hash)
+                done.append(songs_range.pop(0)) 
+                print "Inserting song %s of %s %s:%s to database" % (len(done), total_items, song_name, file_hash)
                 sid = self.db.insert_song(song_name, file_hash)
 
                 print "inserting hashes for song %s" % song_name
