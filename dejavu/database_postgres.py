@@ -425,7 +425,7 @@ class Cursor(object):
                 dbname=options.get('db'), 
                 user=options.get('user'), 
                 host=options.get('host'), 
-                port=options.get('port')
+                port=options.get('port'),
                 password=options.get('passwd'))
 
             if async is True:
