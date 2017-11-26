@@ -21,7 +21,7 @@ class PostgresDatabase(Database):
     type = "postgresql"
 
     # The number of hashes to insert at a time
-    NUM_HASHES = 9000
+    NUM_HASHES = 11250
 
     # Schema
     DEFAULT_SCHEMA = 'public'
@@ -425,6 +425,7 @@ class Cursor(object):
                 dbname=options.get('db'), 
                 user=options.get('user'), 
                 host=options.get('host'), 
+                port=options.get('port')
                 password=options.get('passwd'))
 
             if async is True:
